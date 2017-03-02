@@ -1,0 +1,25 @@
+{
+  "name": "broken_react",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "bootstrap-sass": "^3.3.7",
+    "webpack": "^2.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/expiaz/broken-react.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/expiaz/broken-react/issues"
+  },
+  "homepage": "https://github.com/expiaz/broken-react#readme"
+}
