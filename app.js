@@ -3,60 +3,53 @@ var framework = require('./vendor/node_router/AbsctractFramework');
 var react = new framework();
 
 react.createComponent({
-    node:"bonjour",
-    route: "*",
-    template: 'bonjour',
-    index: function(now,old){
-        console.log('[Bonjour Component::index]',arguments);
-        console.log('[Bonjour Component flux]',JSON.stringify(this.flux.getState()));
-    }
-});
-
-react.createComponent({
     node:"app",
     route: "/",
-    initialState: function(){
-        return {message: "greeting"};
+    getInitialState: function(){
+        return {
+            message: "greeting",
+            template: '<h1>{{message}} from {{location}} <a href="product/4">go to product</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>'
+        };
     },
-    template: '<h1>{{message}} from {{location}} <a href="/">refresh</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>',
-    index: function(now,old){
+    index: function (now,old) {
         this.setState({location:now.url.display,node:this.node});
-        console.log('[App Component::index]',arguments);
-        console.log('[App Component flux]',JSON.stringify(this.flux.getState()));
+    },
+    render: function () {
+        console.log('[App Component::render]',arguments);
+        return '<h1>{{message}} from {{location}} <a href="/product/4">go to product</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>';
     }
 });
 
 react.createComponent({
-    node: "sidebar",
-    route: "*",
-    initialState: function() {
-        var self = this;
+    node:"product",
+    route: "/product/:id",
+    getInitialState: function (actualLocation,lastLocation) {
         return {
-            handler: self.handleClick.bind(self),
-            articles: [
-                {
-                    name: 'pub1',
-                    content: 'c\'est bien',
-                    image: 'a.jpg'
-                }
-            ]
-        };
+            template: '<h1>product {{id}}</h1>',
+            click: 0
+        }
     },
-    template: '<aside><%for {{articles}} as {{article}}%><div style="background-image:url(\'{{article.image}}\')"><h4>{{article.name}}</h4><p>{{article.content}}<button onclick="{{handler}}">Go to</button></p></div><%endfor%></aside>',
-    index: function (now, old) {
-        console.log('[Sidebar Component::index]',arguments);
-        console.log('[Sidebar Component flux]',JSON.stringify(this.flux.getState()));
-        var state = this.flux.getState();
-        state.articles.push({
-            name:'pub2',
-            content:'c\'est mauvais',
-            image:'c.jpg'
-        });
-        this.setState(state);
+    index: function(now,old){
+        this.setState({id:now.params.id});
+        console.log('[App product::index]',arguments);
     },
-    handleClick: function (e) {
-        console.log(e);
+    componentWillMount: function(){
+        console.log('PRODUCT WILL RENDER');
+    },
+    componentHaveMount: function () {
+        this.handleClick();
+    },
+    render: function () {
+        return '<h1>product {{id}} : {{click}}</h1>';
+    },
+    handleClick: function () {
+        var self = this;
+        this.el.firstChild.addEventListener('click', function () {
+            self.setState({click:self.flux.getState('click').click + 1});
+        })
     }
 });
 
 react.launch();
+
+react.routerEngine.navigate("/");

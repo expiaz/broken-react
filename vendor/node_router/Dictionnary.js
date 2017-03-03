@@ -116,6 +116,31 @@ var Dictionnary = (function () {
         return this._keys[this._values.indexOf(value)];
     }
 
+    Dictionnary.prototype.sort = function (fn) {
+        if(fn == void 0){
+            fn = function(a, b){
+                if(a < b) return -1;
+                if(a > b) return 1;
+                return 0;
+            };
+        }
+        var oldKeys = {};
+        for(var i = 0; i < this._keys.length; i++){
+            oldKeys[this._keys[i]] = i;
+        }
+        var newKeys = this._keys.sort(fn),
+            newValues = [];
+        for(var i = 0; i < this._keys.length; i++){
+            newValues[i] = this._values[oldKeys[newKeys[i]]];
+        }
+        this._keys = newKeys;
+        this._values = newValues;
+    }
+
+    Dictionnary.prototype.getKeys = function () {
+        return this._keys;
+    }
+
     Dictionnary.prototype[Symbol.iterator] = function () {
         var index = 0,
             data  = this._values;

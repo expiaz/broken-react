@@ -27,12 +27,13 @@ var Router = (function () {
         var self = this;
         console.log('[Router::parseTags]')
         Array.prototype.slice.call(document.getElementsByTagName('a')).forEach(function (link) {
-            console.log(link);
+            console.log('link finded ',link);
             if(!(link.className.match(/handle/))){
                 link.className = link.className.length ? link.className + ' handle' : 'handle'
                 link.addEventListener('click',function (e) {
                     e.preventDefault();
-                    self.navigate(link.pathname);
+                    var pathname = link.pathname.charAt(0) == '/' ? link.pathname : '/' + link.pathname;
+                    self.navigate(pathname);
                 });
             }
         });
@@ -68,7 +69,7 @@ var Router = (function () {
         });
 
         this.middlewares.stack = this.middlewares.stack.sort(function (a,b) {
-            return (b.route.toString().length - a.route.toString().length) + (b.vars.length - a.vars.length);
+            return b.route.toString().length - a.route.toString().length;
         });
 
         return this;
@@ -76,48 +77,55 @@ var Router = (function () {
 
     Router.prototype.on = function(route,handler){
 
-
         if(typeof route == "function"){
-            this.routes.stack.push({
-                name: 'base',
-                route: /\//,
-                vars: [],
-                handler: route
-            });
+            var alreadyRegistered = false;
+            for(var i = 0; i < this.routes.stack.length; i++){
+                if(this.routes.stack[i].name == "/"){
+                    alreadyRegistered = true;
+                    this.routes.stack[i].handler.push(handler);
+                }
+            }
+            if(!alreadyRegistered){
+                this.routes.stack.push({
+                    name: 'base',
+                    route: /\//,
+                    vars: [],
+                    handler: [route]
+                })
+            }
             return this;
         }
+
+        if(typeof route != "string")
+            return this;
 
         if(route == "*"){
-            this.routes.always.push({
-                handler: handler
-            });
+            this.routes.always.push(handler);
             return this;
         }
 
-
-        if(route == "/"){
+        var alreadyRegistered = false;
+        for(var i = 0; i < this.routes.stack.length; i++){
+            if(this.routes.stack[i].name == route){
+                alreadyRegistered = true;
+                this.routes.stack[i].handler.push(handler);
+            }
+        }
+        if(!alreadyRegistered){
+            var _vars = [];
             this.routes.stack.push({
-                name: 'base',
-                route: /\//,
-                vars: [],
-                handler: handler
+                name: route,
+                route: new RegExp('^' + route.replace(/:(\d+|\w+)/g, function (global, match) {
+                        _vars.push(match);
+                        return "(.[^\/]*)";
+                    }) + '$'),
+                vars: _vars,
+                handler: [handler]
             });
-            return this;
         }
-
-        var _vars = [];
-        this.routes.stack.push({
-            name: route,
-            route: new RegExp('^/' + route.replace(/:(\d+|\w+)/g, function (global, match) {
-                    _vars.push(match);
-                    return "(.[^\/]*)";
-                }) + '$'),
-            vars: _vars,
-            handler: handler
-        });
 
         this.routes.stack = this.routes.stack.sort(function (a,b) {
-            return (b.route.toString().length - a.route.toString().length) + (b.vars.length - a.vars.length);
+            return b.length - a.length;
         });
 
         return this;
@@ -133,7 +141,7 @@ var Router = (function () {
         var path = route || this.getLocation(),
             match;
 
-        if(typeof index != "number"){
+        if(index == void 0){
             this.middlewares.main.name !== undefined
                 ? this.middlewares.main.handler.call({},{url:path}, this.history.last(), function(){ this.applyMiddleware(path,0) }.bind(this))
                 : this.applyMiddleware(path,0);
@@ -158,22 +166,21 @@ var Router = (function () {
 
     Router.prototype.applyRoute = function (route) {
 
+        console.log('[Router::applyRoute] (route/registered) ',route,this.routes);
 
         var path = route || this.getLocation(),
             match;
 
-        for(var i = 0; i < this.routes.always.length; i++) {
-            this.routes.always[i].handler.call(null, this.history.now(), this.history.last());
-        }
 
         for(var i = 0; i < this.routes.stack.length; i++) {
             if (match = path.match(this.routes.stack[i].route)) {
+                console.log('[Router::applyRoute] match found (match/route object) ',match,this.routes.stack[i]);
                 match.shift();
                 var args = match.slice(),
                     params = {};
                 for (var j = 0; j < args.length; j++)
                     params[this.routes.stack[i].vars[j]] = args[j];
-                if(this.history.now().url != match.input){
+                if(this.history.now() && this.history.now().url  != match.input){
                     this.history.add({
                         route: this.routes.stack[i].name,
                         url: {
@@ -187,17 +194,25 @@ var Router = (function () {
                 else{
                     window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
                 }
-                this.emit(this.routes.stack[i].route);
+                //this.emit(this.routes.stack[i].name);
+                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
+                    this.routes.stack[i].handler[j].call(null, this.history.now() || {}, this.history.last() || {});
+                this.parseTags();
                 return;
             }
+        }
+
+        for(var i = 0; i < this.routes.always.length; i++) {
+            this.routes.always[i].handler.call(null, this.history.now() || {}, this.history.last() || {});
         }
 
     };
 
     Router.prototype.emit = function(route){
         for(var i = 0; i < this.routes.stack.length; i++)
-            if(this.routes.stack[i].route == route)
-                this.routes.stack[i].handler.call(null, this.history.now(), this.history.last());
+            if(this.routes.stack[i].name == route)
+                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
+                    this.routes.stack[i].handler[j].call(null, this.history.now(), this.history.last());
         this.parseTags();
     };
 

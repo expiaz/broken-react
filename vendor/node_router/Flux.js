@@ -70,6 +70,28 @@ var Flux = (function () {
             }
             return -1;
         }
+        else if(typeof prop == "string" && value == void 0){
+            for (var p in this.state){
+                if (p == prop){
+                    if(whole)
+                        return this.utils.assign_(this.state);
+                    var ret = {};
+                    ret[p] = this.state[p];
+                    return this.utils.assign_(ret);
+                }
+            }
+            for (var i = 0; i < this.store.length; i++) {
+                for (var p in this.store[i]) {
+                    if (p == prop){
+                        if(whole)
+                            return this.utils.assign_(this.store[i]);
+                        var ret = {};
+                        ret[p] = this.state[i][p];
+                        return this.utils.assign_(ret);
+                    }
+                }
+            }
+        }
         else {
             return this.utils.assign_(this.state);
         }

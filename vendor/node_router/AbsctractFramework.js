@@ -1,27 +1,17 @@
-var routerEngine = require('./Router');
-var historyEngine = require('./History');
-var templateEngine = require('./Chino');
-var modelEngine = require('./Flux');
-var dataEngine = require('./Dictionnary');
+var Router = require('./Router');
+var History = require('./History');
+var Chino = require('./Chino');
+var Flux = require('./Flux');
+var Dictionnary = require('./Dictionnary');
 var Component = require('./Component');
 
 
 var Framework = (function () {
 
     function Framework(){
-
-        this.constructors = {
-            router: routerEngine,
-            template: templateEngine,
-            history: historyEngine,
-            model: modelEngine,
-            dico: dataEngine
-        };
-
-        this.componentsDictionnary = new this.constructors.dico();
-        this.routerEngine = new this.constructors.router(new this.constructors.history());
-        this.templateEngine = new this.constructors.template();
-
+        this.componentsDictionnary = new Dictionnary();
+        this.routerEngine = new Router(new History());
+        this.templateEngine = new Chino();
     }
 
     Framework.prototype.utils = {
@@ -61,31 +51,31 @@ var Framework = (function () {
 
     Framework.prototype.createComponent = function (component) {
 
-        var compo = Object.assign(new Component(this.templateEngine,this.routerEngine),component);
+        var compo = Object.assign(new Component(this.templateEngine),component);
 
         compo.el = document.getElementById(compo.node) || document.getElementsByTagName('body')[0];
 
         compo.name = compo.node;
 
-        var initialState = Object.assign(compo.initialState(),{template:compo.template});
+        var initialState = compo.getInitialState();
 
         compo.flux.init(initialState);
 
-        this.componentsDictionnary.add(compo.node,compo);
+        //this.componentManager.add(compo.node,compo);
 
-        this.templateEngine.register(compo.template,compo.node,compo.state);
+        //this.componentsDictionnary.add(compo.node,compo);
 
-        compo.render();
+        this.templateEngine.register(initialState.template || "No template provided in initialState()",compo.node,initialState);
 
-        this.routerEngine.on(compo.route,compo.middleware.bind(compo));
+        this.routerEngine.on(compo.route,compo.index.bind(compo));
 
     };
 
     Framework.prototype.addMiddleware = function(route,handler){
         if(typeof route == "function")
-            this.router.use(route);
+            this.routerEngine.use(route);
         else
-            this.router.use(route,handler);
+            this.routerEngine.use(route,handler);
     };
 
     Framework.prototype.launch = function () {

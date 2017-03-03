@@ -188,6 +188,31 @@ var Dictionnary = (function () {
         return this._keys[this._values.indexOf(value)];
     }
 
+    Dictionnary.prototype.sort = function (fn) {
+        if(fn == void 0){
+            fn = function(a, b){
+                if(a < b) return -1;
+                if(a > b) return 1;
+                return 0;
+            };
+        }
+        var oldKeys = {};
+        for(var i = 0; i < this._keys.length; i++){
+            oldKeys[this._keys[i]] = i;
+        }
+        var newKeys = this._keys.sort(fn),
+            newValues = [];
+        for(var i = 0; i < this._keys.length; i++){
+            newValues[i] = this._values[oldKeys[newKeys[i]]];
+        }
+        this._keys = newKeys;
+        this._values = newValues;
+    }
+
+    Dictionnary.prototype.getKeys = function () {
+        return this._keys;
+    }
+
     Dictionnary.prototype[Symbol.iterator] = function () {
         var index = 0,
             data  = this._values;
@@ -280,6 +305,28 @@ var Flux = (function () {
                 }
             }
             return -1;
+        }
+        else if(typeof prop == "string" && value == void 0){
+            for (var p in this.state){
+                if (p == prop){
+                    if(whole)
+                        return this.utils.assign_(this.state);
+                    var ret = {};
+                    ret[p] = this.state[p];
+                    return this.utils.assign_(ret);
+                }
+            }
+            for (var i = 0; i < this.store.length; i++) {
+                for (var p in this.store[i]) {
+                    if (p == prop){
+                        if(whole)
+                            return this.utils.assign_(this.store[i]);
+                        var ret = {};
+                        ret[p] = this.state[i][p];
+                        return this.utils.assign_(ret);
+                    }
+                }
+            }
         }
         else {
             return this.utils.assign_(this.state);
@@ -448,30 +495,20 @@ module.exports = Flux;
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var routerEngine = __webpack_require__(6);
-var historyEngine = __webpack_require__(5);
-var templateEngine = __webpack_require__(3);
-var modelEngine = __webpack_require__(1);
-var dataEngine = __webpack_require__(0);
+var Router = __webpack_require__(6);
+var History = __webpack_require__(5);
+var Chino = __webpack_require__(3);
+var Flux = __webpack_require__(1);
+var Dictionnary = __webpack_require__(0);
 var Component = __webpack_require__(4);
 
 
 var Framework = (function () {
 
     function Framework(){
-
-        this.constructors = {
-            router: routerEngine,
-            template: templateEngine,
-            history: historyEngine,
-            model: modelEngine,
-            dico: dataEngine
-        };
-
-        this.componentsDictionnary = new this.constructors.dico();
-        this.routerEngine = new this.constructors.router(new this.constructors.history());
-        this.templateEngine = new this.constructors.template();
-
+        this.componentsDictionnary = new Dictionnary();
+        this.routerEngine = new Router(new History());
+        this.templateEngine = new Chino();
     }
 
     Framework.prototype.utils = {
@@ -511,31 +548,31 @@ var Framework = (function () {
 
     Framework.prototype.createComponent = function (component) {
 
-        var compo = Object.assign(new Component(this.templateEngine,this.routerEngine),component);
+        var compo = Object.assign(new Component(this.templateEngine),component);
 
         compo.el = document.getElementById(compo.node) || document.getElementsByTagName('body')[0];
 
         compo.name = compo.node;
 
-        var initialState = Object.assign(compo.initialState(),{template:compo.template});
+        var initialState = compo.getInitialState();
 
         compo.flux.init(initialState);
 
-        this.componentsDictionnary.add(compo.node,compo);
+        //this.componentManager.add(compo.node,compo);
 
-        this.templateEngine.register(compo.template,compo.node,compo.state);
+        //this.componentsDictionnary.add(compo.node,compo);
 
-        compo.render();
+        this.templateEngine.register(initialState.template || "No template provided in initialState()",compo.node,initialState);
 
-        this.routerEngine.on(compo.route,compo.middleware.bind(compo));
+        this.routerEngine.on(compo.route,compo.index.bind(compo));
 
     };
 
     Framework.prototype.addMiddleware = function(route,handler){
         if(typeof route == "function")
-            this.router.use(route);
+            this.routerEngine.use(route);
         else
-            this.router.use(route,handler);
+            this.routerEngine.use(route,handler);
     };
 
     Framework.prototype.launch = function () {
@@ -694,56 +731,67 @@ var model = __webpack_require__(1);
 
 var Component = (function () {
     
-    function Component(templateEngine, routerEngine){
+    function Component(templateEngine){
         this.node = "app";
         this.route = "/";
-        this.template = "<h1>{{location}}</h1>";
+        this.template = "";
         this.flux = new model();
         this.tplEngine = templateEngine;
-        this.rtEngine = routerEngine;
+        this.stateChanged = false;
     }
 
-    Component.prototype.initialState = function () {
+    Component.prototype.getInitialState = function () {
         return {};
-    }
-
-    Component.prototype.index = function (now,old) {
-        this.render();
     };
 
-    Component.prototype.middleware = function (now,old) {
+    Component.prototype.componentWillMount = function () {
+
+    };
+
+    Component.prototype.componentHaveMount = function () {
+
+    };
+
+    Component.prototype.componentWillUnmount = function () {
+
+    };
+
+    Component.prototype.render = function (now,old) {
+        return "<h1>{{location}}</h1>";
+    };
+
+    Component.prototype.middleware = function () {
         //this.flux.setState({location:now.url});
-        this.index(old,now);
+        this.componentWillMount();
+        this.mount();
+        this.componentHaveMount();
     };
 
     Component.prototype.setState = function(newstate){
         console.log('[Component('+this.node+')::setState] called',arguments);
         if(this.flux.setState(newstate)){
             console.log('[Component('+this.node+')::setState] state modified, re-rendering');
-            this.render();
+            this.middleware();
         }
     };
 
-    Component.prototype.render =  function () {
-        console.log('[Component::render] rendering of ' + JSON.stringify(this.node));
-        var actual = this.flux.getState();
-        console.log(JSON.stringify(actual));
-        if(actual.template != void 0){
-            if(this.template == actual.template){
-                var content = this.tplEngine.render(this.node,actual);
-                console.log('[Component::render] content rendered = ');
-                console.log(JSON.stringify(content));
-                this.el.innerHTML = content;
-            }
-            else{
-                this.el.innerHTML = this.tplEngine.render(actual.template,actual,this.node);
-                this.template = actual.template;
-            }
+    Component.prototype.unmount =  function () {
+        this.el.innerHTML = "";
+    };
+
+    Component.prototype.mount =  function () {
+        var template = this.render();
+        if(this.template != template){
+            this.template = template;
+            this.el.innerHTML = this.tplEngine.render(this.template,this.flux.getState(),this.node);
         }
         else{
-            this.el.innerHTML = this.tplEngine.render(this.node,actual);
+            this.el.innerHTML = this.tplEngine.render(this.node,this.flux.getState());
         }
-        this.rtEngine.parseTags();
+    };
+
+    Component.prototype.index = function (now,old) {
+
     };
 
     return Component;
@@ -813,12 +861,13 @@ var Router = (function () {
         var self = this;
         console.log('[Router::parseTags]')
         Array.prototype.slice.call(document.getElementsByTagName('a')).forEach(function (link) {
-            console.log(link);
+            console.log('link finded ',link);
             if(!(link.className.match(/handle/))){
                 link.className = link.className.length ? link.className + ' handle' : 'handle'
                 link.addEventListener('click',function (e) {
                     e.preventDefault();
-                    self.navigate(link.pathname);
+                    var pathname = link.pathname.charAt(0) == '/' ? link.pathname : '/' + link.pathname;
+                    self.navigate(pathname);
                 });
             }
         });
@@ -854,7 +903,7 @@ var Router = (function () {
         });
 
         this.middlewares.stack = this.middlewares.stack.sort(function (a,b) {
-            return (b.route.toString().length - a.route.toString().length) + (b.vars.length - a.vars.length);
+            return b.route.toString().length - a.route.toString().length;
         });
 
         return this;
@@ -862,48 +911,55 @@ var Router = (function () {
 
     Router.prototype.on = function(route,handler){
 
-
         if(typeof route == "function"){
-            this.routes.stack.push({
-                name: 'base',
-                route: /\//,
-                vars: [],
-                handler: route
-            });
+            var alreadyRegistered = false;
+            for(var i = 0; i < this.routes.stack.length; i++){
+                if(this.routes.stack[i].name == "/"){
+                    alreadyRegistered = true;
+                    this.routes.stack[i].handler.push(handler);
+                }
+            }
+            if(!alreadyRegistered){
+                this.routes.stack.push({
+                    name: 'base',
+                    route: /\//,
+                    vars: [],
+                    handler: [route]
+                })
+            }
             return this;
         }
+
+        if(typeof route != "string")
+            return this;
 
         if(route == "*"){
-            this.routes.always.push({
-                handler: handler
-            });
+            this.routes.always.push(handler);
             return this;
         }
 
-
-        if(route == "/"){
+        var alreadyRegistered = false;
+        for(var i = 0; i < this.routes.stack.length; i++){
+            if(this.routes.stack[i].name == route){
+                alreadyRegistered = true;
+                this.routes.stack[i].handler.push(handler);
+            }
+        }
+        if(!alreadyRegistered){
+            var _vars = [];
             this.routes.stack.push({
-                name: 'base',
-                route: /\//,
-                vars: [],
-                handler: handler
+                name: route,
+                route: new RegExp('^' + route.replace(/:(\d+|\w+)/g, function (global, match) {
+                        _vars.push(match);
+                        return "(.[^\/]*)";
+                    }) + '$'),
+                vars: _vars,
+                handler: [handler]
             });
-            return this;
         }
-
-        var _vars = [];
-        this.routes.stack.push({
-            name: route,
-            route: new RegExp('^/' + route.replace(/:(\d+|\w+)/g, function (global, match) {
-                    _vars.push(match);
-                    return "(.[^\/]*)";
-                }) + '$'),
-            vars: _vars,
-            handler: handler
-        });
 
         this.routes.stack = this.routes.stack.sort(function (a,b) {
-            return (b.route.toString().length - a.route.toString().length) + (b.vars.length - a.vars.length);
+            return b.length - a.length;
         });
 
         return this;
@@ -919,7 +975,7 @@ var Router = (function () {
         var path = route || this.getLocation(),
             match;
 
-        if(typeof index != "number"){
+        if(index == void 0){
             this.middlewares.main.name !== undefined
                 ? this.middlewares.main.handler.call({},{url:path}, this.history.last(), function(){ this.applyMiddleware(path,0) }.bind(this))
                 : this.applyMiddleware(path,0);
@@ -944,22 +1000,21 @@ var Router = (function () {
 
     Router.prototype.applyRoute = function (route) {
 
+        console.log('[Router::applyRoute] (route/registered) ',route,this.routes);
 
         var path = route || this.getLocation(),
             match;
 
-        for(var i = 0; i < this.routes.always.length; i++) {
-            this.routes.always[i].handler.call(null, this.history.now(), this.history.last());
-        }
 
         for(var i = 0; i < this.routes.stack.length; i++) {
             if (match = path.match(this.routes.stack[i].route)) {
+                console.log('[Router::applyRoute] match found (match/route object) ',match,this.routes.stack[i]);
                 match.shift();
                 var args = match.slice(),
                     params = {};
                 for (var j = 0; j < args.length; j++)
                     params[this.routes.stack[i].vars[j]] = args[j];
-                if(this.history.now().url != match.input){
+                if(this.history.now() && this.history.now().url  != match.input){
                     this.history.add({
                         route: this.routes.stack[i].name,
                         url: {
@@ -973,17 +1028,25 @@ var Router = (function () {
                 else{
                     window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
                 }
-                this.emit(this.routes.stack[i].route);
+                //this.emit(this.routes.stack[i].name);
+                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
+                    this.routes.stack[i].handler[j].call(null, this.history.now() || {}, this.history.last() || {});
+                this.parseTags();
                 return;
             }
+        }
+
+        for(var i = 0; i < this.routes.always.length; i++) {
+            this.routes.always[i].handler.call(null, this.history.now() || {}, this.history.last() || {});
         }
 
     };
 
     Router.prototype.emit = function(route){
         for(var i = 0; i < this.routes.stack.length; i++)
-            if(this.routes.stack[i].route == route)
-                this.routes.stack[i].handler.call(null, this.history.now(), this.history.last());
+            if(this.routes.stack[i].name == route)
+                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
+                    this.routes.stack[i].handler[j].call(null, this.history.now(), this.history.last());
         this.parseTags();
     };
 
@@ -1542,63 +1605,56 @@ var framework = __webpack_require__(2);
 var react = new framework();
 
 react.createComponent({
-    node:"bonjour",
-    route: "*",
-    template: 'bonjour',
-    index: function(now,old){
-        console.log('[Bonjour Component::index]',arguments);
-        console.log('[Bonjour Component flux]',JSON.stringify(this.flux.getState()));
-    }
-});
-
-react.createComponent({
     node:"app",
     route: "/",
-    initialState: function(){
-        return {message: "greeting"};
+    getInitialState: function(){
+        return {
+            message: "greeting",
+            template: '<h1>{{message}} from {{location}} <a href="product/4">go to product</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>'
+        };
     },
-    template: '<h1>{{message}} from {{location}} <a href="/">refresh</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>',
-    index: function(now,old){
+    index: function (now,old) {
         this.setState({location:now.url.display,node:this.node});
-        console.log('[App Component::index]',arguments);
-        console.log('[App Component flux]',JSON.stringify(this.flux.getState()));
+    },
+    render: function () {
+        console.log('[App Component::render]',arguments);
+        return '<h1>{{message}} from {{location}} <a href="/product/4">go to product</a><%if {{node}}%><br/>You are at {{node}}<%endif%></h1>';
     }
 });
 
 react.createComponent({
-    node: "sidebar",
-    route: "*",
-    initialState: function() {
-        var self = this;
+    node:"product",
+    route: "/product/:id",
+    getInitialState: function (actualLocation,lastLocation) {
         return {
-            handler: self.handleClick.bind(self),
-            articles: [
-                {
-                    name: 'pub1',
-                    content: 'c\'est bien',
-                    image: 'a.jpg'
-                }
-            ]
-        };
+            template: '<h1>product {{id}}</h1>',
+            click: 0
+        }
     },
-    template: '<aside><%for {{articles}} as {{article}}%><div style="background-image:url(\'{{article.image}}\')"><h4>{{article.name}}</h4><p>{{article.content}}<button onclick="{{handler}}">Go to</button></p></div><%endfor%></aside>',
-    index: function (now, old) {
-        console.log('[Sidebar Component::index]',arguments);
-        console.log('[Sidebar Component flux]',JSON.stringify(this.flux.getState()));
-        var state = this.flux.getState();
-        state.articles.push({
-            name:'pub2',
-            content:'c\'est mauvais',
-            image:'c.jpg'
-        });
-        this.setState(state);
+    index: function(now,old){
+        this.setState({id:now.params.id});
+        console.log('[App product::index]',arguments);
     },
-    handleClick: function (e) {
-        console.log(e);
+    componentWillMount: function(){
+        console.log('PRODUCT WILL RENDER');
+    },
+    componentHaveMount: function () {
+        this.handleClick();
+    },
+    render: function () {
+        return '<h1>product {{id}} : {{click}}</h1>';
+    },
+    handleClick: function () {
+        var self = this;
+        this.el.firstChild.addEventListener('click', function () {
+            self.setState({click:self.flux.getState('click').click + 1});
+        })
     }
 });
 
 react.launch();
+
+react.routerEngine.navigate("/");
 
 /***/ })
 /******/ ]);
