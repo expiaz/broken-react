@@ -1,5 +1,5 @@
-var Router = require('./Router');
-var History = require('./History');
+var Router = require('./router/Router');
+var History = require('./router/History');
 var Chino = require('./Chino');
 var Flux = require('./Flux');
 var Dictionnary = require('./Dictionnary');
@@ -12,6 +12,7 @@ var Framework = (function () {
         this.componentsDictionnary = new Dictionnary();
         this.routerEngine = new Router(new History());
         this.templateEngine = new Chino();
+
     }
 
     Framework.prototype.utils = {
@@ -57,17 +58,24 @@ var Framework = (function () {
 
         compo.name = compo.node;
 
-        var initialState = compo.getInitialState();
+        var initialState = compo.getInitialState() && compo.getInitialState() || {};
 
         compo.flux.init(initialState);
 
+        compo.state = initialState;
+
         //this.componentManager.add(compo.node,compo);
 
-        //this.componentsDictionnary.add(compo.node,compo);
+        this.componentsDictionnary.add(compo.node,compo);
 
         this.templateEngine.register(initialState.template || "No template provided in initialState()",compo.node,initialState);
-
-        this.routerEngine.on(compo.route,compo.index.bind(compo));
+        if(Array.isArray(compo.route)){
+            for(var i = 0; i < compo.route; i++)
+                this.routerEngine.on(compo.route[i],compo.mountMiddleware.bind(compo));
+        }
+        else if(typeof compo.route == "string") {
+            this.routerEngine.on(compo.route, compo.mountMiddleware.bind(compo));
+        }
 
     };
 
@@ -79,6 +87,15 @@ var Framework = (function () {
     };
 
     Framework.prototype.launch = function () {
+        var self = this;
+        this.routerEngine.use(function (url,lastHistory,next) {
+            var keys = self.componentsDictionnary.getKeys();
+            for(var i = 0; i < keys.length; i++){
+                var actualComponent = self.componentsDictionnary.get(keys[i]);
+                actualComponent.unmountMiddleware();
+            }
+            next();
+        })
         this.routerEngine.init();
     }
 

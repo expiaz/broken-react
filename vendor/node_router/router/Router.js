@@ -11,6 +11,7 @@ var Router = (function () {
             stack: []
         }
         this.history = history;
+        this.location = null;
     }
 
     Router.prototype.bind = function (history) {
@@ -172,6 +173,8 @@ var Router = (function () {
             match;
 
 
+
+
         for(var i = 0; i < this.routes.stack.length; i++) {
             if (match = path.match(this.routes.stack[i].route)) {
                 console.log('[Router::applyRoute] match found (match/route object) ',match,this.routes.stack[i]);
@@ -180,19 +183,25 @@ var Router = (function () {
                     params = {};
                 for (var j = 0; j < args.length; j++)
                     params[this.routes.stack[i].vars[j]] = args[j];
-                if(this.history.now() && this.history.now().url  != match.input){
+                if(this.location == path){
+                    window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
+                }
+                else{
+                    this.location = path;
                     this.history.add({
-                        route: this.routes.stack[i].name,
-                        url: {
-                            real: match.input,
-                            display: path
-                        },
-                        params: params
+                        location:{
+                            route: this.routes.stack[i].name,
+                            url: {
+                                real: match.input,
+                                display: path
+                            },
+                            params: params
+                        }
                     });
                     window.history.pushState({location: path}, '', this.root + path + window.location.search + window.location.hash);
                 }
-                else{
-                    window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
+                for(var i = 0; i < this.routes.always.length; i++) {
+                    this.routes.always[i].call(null, this.history.now() || {}, this.history.last() || {});
                 }
                 //this.emit(this.routes.stack[i].name);
                 for(var j = 0; j < this.routes.stack[i].handler.length; j++)
@@ -202,9 +211,26 @@ var Router = (function () {
             }
         }
 
-        for(var i = 0; i < this.routes.always.length; i++) {
-            this.routes.always[i].handler.call(null, this.history.now() || {}, this.history.last() || {});
+        if(this.location == path){
+            window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
         }
+        else{
+            this.location = path;
+            this.history.add({
+                location:{
+                    url: {
+                        display: path
+                    }
+                }
+            });
+            window.history.pushState({location: path}, '', this.root + path + window.location.search + window.location.hash);
+        }
+
+        for(var i = 0; i < this.routes.always.length; i++) {
+            this.routes.always[i].call(null, this.history.now() || {}, this.history.last() || {});
+        }
+
+
 
     };
 

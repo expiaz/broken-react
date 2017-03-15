@@ -8,7 +8,8 @@ var Component = (function () {
         this.template = "";
         this.flux = new model();
         this.tplEngine = templateEngine;
-        this.stateChanged = false;
+        this.state = {};
+        this.mounted = false;
     }
 
     Component.prototype.getInitialState = function () {
@@ -19,7 +20,18 @@ var Component = (function () {
 
     };
 
-    Component.prototype.componentHaveMount = function () {
+    Component.prototype.componentDidMount = function () {
+
+    };
+
+    Component.prototype.componentShouldUpdate = function (lastState,nextState) {
+        return true;
+    };
+
+    Component.prototype.componentWillUpdate = function () {
+    };
+
+    Component.prototype.componentDidUpdate = function () {
 
     };
 
@@ -27,39 +39,75 @@ var Component = (function () {
 
     };
 
-    Component.prototype.render = function (now,old) {
+    Component.prototype.componentDidUnmount = function () {
+
+    };
+
+    Component.prototype.render = function () {
         return "<h1>{{location}}</h1>";
     };
 
-    Component.prototype.middleware = function () {
+    Component.prototype.mountMiddleware = function (now,old) {
         //this.flux.setState({location:now.url});
+        if(this.mounted == true)
+            return;
         this.componentWillMount();
         this.mount();
-        this.componentHaveMount();
+        this.componentDidMount();
+        this.index(now,old);
     };
 
-    Component.prototype.setState = function(newstate){
-        console.log('[Component('+this.node+')::setState] called',arguments);
-        if(this.flux.setState(newstate)){
-            console.log('[Component('+this.node+')::setState] state modified, re-rendering');
-            this.middleware();
+    Component.prototype.updateMiddleware = function (newState) {
+        //this.flux.setState({location:now.url});
+        if(this.flux.setState(newState)){
+            var nextState = this.flux.getState();
         }
+        else{
+            return;
+        }
+        if(this.componentShouldUpdate(this.state,nextState) == false) {
+            return;
+        }
+        this.state = nextState;
+        this.componentWillUpdate();
+        this.update();
+        this.componentDidUpdate();
+    };
+
+    Component.prototype.unmountMiddleware = function () {
+        //this.flux.setState({location:now.url});
+        if(this.mounted == false)
+            return;
+        this.componentWillUnmount();
+        this.unmount();
+        this.componentDidUnmount();
+    };
+
+    Component.prototype.setState = function(newState){
+        this.updateMiddleware(newState);
     };
 
     Component.prototype.unmount =  function () {
         this.el.innerHTML = "";
+        this.mounted = false;
     };
 
     Component.prototype.mount =  function () {
+        this.mounted = true;
+        this.update();
+    };
+
+    Component.prototype.update = function () {
         var template = this.render();
         if(this.template != template){
             this.template = template;
-            this.el.innerHTML = this.tplEngine.render(this.template,this.flux.getState(),this.node);
+            this.el.innerHTML = this.tplEngine.render(this.template,this.state,this.node);
         }
         else{
-            this.el.innerHTML = this.tplEngine.render(this.node,this.flux.getState());
+            this.el.innerHTML = this.tplEngine.render(this.node,this.state);
         }
-    };
+    }
+
 
     Component.prototype.index = function (now,old) {
 
