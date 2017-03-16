@@ -1,8 +1,8 @@
-var Dictionnary = require('./Dictionnary');
-var Context = require('./chino/Context');
-var Parser = require('./chino/Parser');
-var Precompiler = require('./chino/Precompiler');
-var Render = require('./chino/Render');
+var Dictionnary = require('./../utils/Dictionnary');
+var Context = require('./Context');
+var Parser = require('./Parser');
+var Precompiler = require('./Precompiler');
+var Render = require('./Render');
 
 var Chino = (function () {
 

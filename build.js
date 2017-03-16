@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 11);
+/******/ 	return __webpack_require__(__webpack_require__.s = 12);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -232,284 +232,21 @@ module.exports = Dictionnary;
 
 /***/ }),
 /* 1 */
-/***/ (function(module, exports) {
-
-var Flux = (function () {
-
-    function Flux(){
-        this.state = {};
-        this.store = [];
-        this.last = {};
-    }
-
-    Flux.prototype.init = function (initialState) {
-        if(Object.keys(initialState).length == 0) return;
-        this.state = initialState;
-    };
-
-    Flux.prototype.getState = function (prop,value,retrieveWholeState) {
-        var whole = retrieveWholeState || false;
-        if(typeof prop == "object") {
-            for(var p in this.state){
-                if(this.stripSlashes(this.state[p]) != prop[p] && this.state[p] != prop[p]){
-                    if(whole)
-                        return this.utils.assign_(this.state);
-                    var ret = {};
-                    ret[p] = this.state[p];
-                    return this.utils.assign_(ret);
-                }
-            }
-            var chosen = false,
-                propsIndices;
-            for(var i = 0; i < this.store.length; i++){
-                propsIndices = [];
-                chosen = true;
-                for(var p in this.store[i]){
-                    if(this.stripSlashes(this.store[i][p]) != prop[p] && this.store[i][p] != prop[p]){
-                        chosen = false;
-                        break;
-                    }
-                    else
-                        propsIndices.push(p);
-                }
-                if(chosen) {
-                    if(whole)
-                        return this.utils.assign_(this.store[i]);
-                    var ret = {};
-                    for(var i = 0; i < propsIndices.length; i++)
-                        ret[propsIndices[i]] = this.store[i][propsIndices[i]];
-                    return this.utils.assign_(ret);
-                }
-            }
-            return -1;
-        }
-        else if(typeof prop == "string" && !!value) {
-            for (var p in this.state){
-                if (p == prop && ((this.state[p] == value) || (this.stripSlashes(this.state[p]) == value))){
-                    if(whole)
-                        return this.utils.assign_(this.state);
-                    var ret = {};
-                    ret[p] = this.state[p];
-                    return this.utils.assign_(ret);
-                }
-            }
-            for (var i = 0; i < this.store.length; i++){
-                for (var p in this.store[i]){
-                    if (p == prop && ((this.store[i][p] == value) || (this.stripSlashes(this.store[i][p]) == value))){
-                        if(whole)
-                            return this.utils.assign_(this.store[i]);
-                        var ret = {};
-                        ret[p] = this.store[i][p];
-                        return this.utils.assign_(ret);
-                    }
-                }
-            }
-            return -1;
-        }
-        else if(typeof prop == "string" && value == void 0){
-            for (var p in this.state){
-                if (p == prop){
-                    if(whole)
-                        return this.utils.assign_(this.state);
-                    var ret = {};
-                    ret[p] = this.state[p];
-                    return this.utils.assign_(ret);
-                }
-            }
-            for (var i = 0; i < this.store.length; i++) {
-                for (var p in this.store[i]) {
-                    if (p == prop){
-                        if(whole)
-                            return this.utils.assign_(this.store[i]);
-                        var ret = {};
-                        ret[p] = this.state[i][p];
-                        return this.utils.assign_(ret);
-                    }
-                }
-            }
-        }
-        else {
-            return this.utils.assign_(this.state);
-        }
-    };
-
-    Flux.prototype.stripSlashes = function(str){
-        return str.replace(/^\//,'').replace(/\/$/,'');
-    };
-
-    Flux.prototype.diff = function (a,b) {
-        console.log('[Flux::diff] called',arguments);
-        if(typeof a != "object")
-            a = Object.create(a);
-        if(typeof b  != "object")
-            b = Object.create(b);
-        var a_length = Object.keys(a).length,
-            b_length = Object.keys(b).length;
-        if(a_length == 0 || b_length == 0) return true;
-        //we want to iterate on the more little
-        for(var k_a in a)
-            if(typeof a[k_a] == "object") a_length+=Object.keys(a[k_a]).length;
-        for(var k_b in b)
-            if(typeof b[k_b] == "object") b_length+=Object.keys(b[k_b]).length;
-        if(a_length > b_length){
-            var c = a;
-            a = b;
-            b = c;
-        }
-        for(var k in a){
-            console.log('[Flux::diff] '+k+' in ',b,(k in b),!(k in b));
-            if(!(k in b))
-                return true;
-            //k is in a and b at the same nesting level
-            //need to compare values and sub-structures now
-            console.log('[Flux::diff] typeof '+a[k]+' != typeof '+b[k],typeof a[k] != typeof b[k]);
-            if(typeof a[k] != typeof b[k])
-                return true;
-            //compare object / arrays
-            console.log('[Flux::diff] typeof '+a[k],typeof a[k]);
-            switch(typeof a[k]){
-                case "object":
-                    console.log('[Flux::diff] goes in object');
-                    console.log('[Flux::diff] '+a[k].constructor+' != '+b[k].constructor,a[k].constructor != b[k].constructor);
-                    if(a[k].constructor != b[k].constructor)
-                        return true;
-                    console.log('[Flux::diff] instances ',(a[k] instanceof Date && b[k] instanceof Date) ||
-                        (a[k] instanceof RegExp && b[k] instanceof RegExp) ||
-                        (a[k] instanceof String && b[k] instanceof String) ||
-                        (a[k] instanceof Number && b[k] instanceof Number));
-
-                    if ((a[k] instanceof Date && b[k] instanceof Date) ||
-                        (a[k] instanceof RegExp && b[k] instanceof RegExp) ||
-                        (a[k] instanceof String && b[k] instanceof String) ||
-                        (a[k] instanceof Number && b[k] instanceof Number)) {
-                        console.log('[Flux::diff] is one of the bases instances');
-                        console.log('[Flux::diff] '+a[k].toString()+' != '+b[k].toString(),a[k].toString() != b[k].toString());
-                        if(a[k].toString() != b[k].toString())
-                            return true;
-                    }
-                    console.log('[Flux::diff] '+a[k]+' instanceof Array && '+b[k]+' instanceof Array',a[k] instanceof Array && b[k] instanceof Array);
-                    if(a[k] instanceof Array && b[k] instanceof Array){
-                        console.log('[Flux::diff] '+a[k].length+' != '+b[k].length,a[k].length != b[k].length);
-                        if(a[k].length != b[k].length)
-                            return true;
-                        for(var i = 0; i < a[k].length; i++){
-                            console.log('[Flux::diff] same obj => recursivity this.diff('+a[k]+','+b[k]+')');
-                            this.diff(a[k],b[k]);
-                        }
-
-                    }
-                    //same obj
-                    console.log('[Flux::diff] same obj => recursivity this.diff('+a[k]+','+b[k]+')');
-
-                    this.diff(a[k],b[k]);
-                    break;
-                case "function":
-                    console.log('[Flux::diff] goes in function');
-                    console.log('[Flux::diff] '+a[k].toString()+' != '+b[k].toString(),a[k].toString() != b[k].toString());
-                    if(a[k].toString() != b[k].toString())
-                        return true;
-                    break;
-                case "string":
-                    console.log('[Flux::diff] goes in string');
-                    console.log('[Flux::diff] '+a[k]+' != '+b[k],a[k] != b[k]);
-                    if(a[k] != b[k])
-                        return true;
-                    break;
-                case "number":
-                    console.log('[Flux::diff] goes in number');
-                    console.log('[Flux::diff] '+a[k]+' != '+b[k],a[k] != b[k]);
-                    if(a[k] != b[k])
-                        return true;
-                    break;
-                case "undefined":
-                    console.log('[Flux::diff] goes in undefined');
-                    break;
-            }
-        }
-        console.log('[Flux::diff] end => return false');
-        return false;
-    };
-
-    Flux.prototype.setState = function (state) {
-
-        console.log('[Flux::setState] called',arguments);
-
-        if(typeof state != "object" || Array.isArray(state)) return false;
-
-
-        console.log('[Flux::setState] cmp last/state',this.last,state);
-
-        if(!this.diff(this.last,state)) return false;
-
-        console.log('[Flux::setState] cmp now/state',this.state,state);
-
-        if(!this.diff(this.state,state)) return false;
-
-
-
-        this.store.push(this.utils.assign_(this.state));
-
-        this.last = state;
-
-        for(var prop in state) {
-            if (typeof state[prop] == "object") {
-                if (Array.isArray(state[prop]))
-                    this.state[prop] = this.utils.map_(state[prop]);
-                else
-                    this.state[prop] = this.utils.assign_(state[prop]);
-            }
-            else
-                this.state[prop] = state[prop];
-        }
-
-        console.log('[Flux::setState] merged states',this.state);
-
-        return true;
-
-    };
-
-    Flux.prototype.utils = {
-        assign_: function (obj) {
-            var dup = {};
-            for(var k in obj){
-                dup[k] = typeof obj[k] == "object" ? Array.isArray(obj[k]) ? this.map_(obj[k]) : this.assign_(obj[k]) : obj[k];
-            }
-            return dup;
-        },
-        map_: function (arr) {
-            var dup = [];
-            for(var i = 0; i < arr.length; i++){
-                dup[i] = typeof arr[i] == "object" ? Array.isArray(arr[i]) ? this.map_(arr[i]) : this.assign_(arr[i]) : arr[i]
-            }
-            return dup;
-        }
-    };
-
-    return Flux;
-
-}());
-
-module.exports = Flux;
-
-/***/ }),
-/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Router = __webpack_require__(10);
-var History = __webpack_require__(9);
-var Chino = __webpack_require__(3);
-var Flux = __webpack_require__(1);
-var Dictionnary = __webpack_require__(0);
-var Component = __webpack_require__(4);
+var Chino = __webpack_require__(2);
 
+var Router = __webpack_require__(10);
+
+var Component = __webpack_require__(7);
+var ComponentManager = __webpack_require__(8);
 
 var Framework = (function () {
 
     function Framework(){
-        this.componentsDictionnary = new Dictionnary();
-        this.routerEngine = new Router(new History());
         this.templateEngine = new Chino();
-
+        this.routerEngine = new Router();
+        this.componentManager = new ComponentManager(this.routerEngine);
     }
 
     Framework.prototype.utils = {
@@ -561,38 +298,11 @@ var Framework = (function () {
 
         compo.state = initialState;
 
-        //this.componentManager.add(compo.node,compo);
+        this.componentManager.add(compo);
 
-        this.componentsDictionnary.add(compo.node,compo);
-
-        this.templateEngine.register(initialState.template || "No template provided in initialState()",compo.node,initialState);
-        if(Array.isArray(compo.route)){
-            for(var i = 0; i < compo.route; i++)
-                this.routerEngine.on(compo.route[i],compo.mountMiddleware.bind(compo));
-        }
-        else if(typeof compo.route == "string") {
-            this.routerEngine.on(compo.route, compo.mountMiddleware.bind(compo));
-        }
-
-    };
-
-    Framework.prototype.addMiddleware = function(route,handler){
-        if(typeof route == "function")
-            this.routerEngine.use(route);
-        else
-            this.routerEngine.use(route,handler);
     };
 
     Framework.prototype.launch = function () {
-        var self = this;
-        this.routerEngine.use(function (url,lastHistory,next) {
-            var keys = self.componentsDictionnary.getKeys();
-            for(var i = 0; i < keys.length; i++){
-                var actualComponent = self.componentsDictionnary.get(keys[i]);
-                actualComponent.unmountMiddleware();
-            }
-            next();
-        })
         this.routerEngine.init();
     }
 
@@ -603,14 +313,14 @@ var Framework = (function () {
 module.exports = Framework;
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var Dictionnary = __webpack_require__(0);
-var Context = __webpack_require__(5);
-var Parser = __webpack_require__(6);
-var Precompiler = __webpack_require__(7);
-var Render = __webpack_require__(8);
+var Context = __webpack_require__(3);
+var Parser = __webpack_require__(4);
+var Precompiler = __webpack_require__(5);
+var Render = __webpack_require__(6);
 
 var Chino = (function () {
 
@@ -664,7 +374,7 @@ var Chino = (function () {
 
         tpl = this.engine.parser.parse(tpl);
 
-        this._cached.add(name,tpl);
+        this._cached.add(name,JSON.stringify(tpl));
 
         return this;
     }
@@ -691,7 +401,7 @@ var Chino = (function () {
         console.log('[chino::render] testing this._cached.existsKey('+JSON.stringify(tpl)+') = ');
         console.log(this._cached.existsKey(tpl));
         if (this._cached.existsKey(tpl)){
-            template = this._cached.duplicate(tpl);
+            template = JSON.parse(this._cached.get(tpl));
         }
         else{
             template = tpl;
@@ -704,10 +414,10 @@ var Chino = (function () {
         }
 
         if(name)
-            this._cached.set(name,template);
+            this._cached.set(name,JSON.stringify(template));
 
         console.log('rendering template ' + tpl);
-        console.log(JSON.stringify(template));
+        console.log(template);
 
         template = this.engine.context.contextify(template,vars);
         template = this.engine.render.render(template);
@@ -741,132 +451,7 @@ var Chino = (function () {
 module.exports = Chino;
 
 /***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var model = __webpack_require__(1);
-
-var Component = (function () {
-    
-    function Component(templateEngine){
-        this.node = "app";
-        this.route = "/";
-        this.template = "";
-        this.flux = new model();
-        this.tplEngine = templateEngine;
-        this.state = {};
-        this.mounted = false;
-    }
-
-    Component.prototype.getInitialState = function () {
-        return {};
-    };
-
-    Component.prototype.componentWillMount = function () {
-
-    };
-
-    Component.prototype.componentDidMount = function () {
-
-    };
-
-    Component.prototype.componentShouldUpdate = function (lastState,nextState) {
-        return true;
-    };
-
-    Component.prototype.componentWillUpdate = function () {
-    };
-
-    Component.prototype.componentDidUpdate = function () {
-
-    };
-
-    Component.prototype.componentWillUnmount = function () {
-
-    };
-
-    Component.prototype.componentDidUnmount = function () {
-
-    };
-
-    Component.prototype.render = function () {
-        return "<h1>{{location}}</h1>";
-    };
-
-    Component.prototype.mountMiddleware = function (now,old) {
-        //this.flux.setState({location:now.url});
-        if(this.mounted == true)
-            return;
-        this.componentWillMount();
-        this.mount();
-        this.componentDidMount();
-        this.index(now,old);
-    };
-
-    Component.prototype.updateMiddleware = function (newState) {
-        //this.flux.setState({location:now.url});
-        if(this.flux.setState(newState)){
-            var nextState = this.flux.getState();
-        }
-        else{
-            return;
-        }
-        if(this.componentShouldUpdate(this.state,nextState) == false) {
-            return;
-        }
-        this.state = nextState;
-        this.componentWillUpdate();
-        this.update();
-        this.componentDidUpdate();
-    };
-
-    Component.prototype.unmountMiddleware = function () {
-        //this.flux.setState({location:now.url});
-        if(this.mounted == false)
-            return;
-        this.componentWillUnmount();
-        this.unmount();
-        this.componentDidUnmount();
-    };
-
-    Component.prototype.setState = function(newState){
-        this.updateMiddleware(newState);
-    };
-
-    Component.prototype.unmount =  function () {
-        this.el.innerHTML = "";
-        this.mounted = false;
-    };
-
-    Component.prototype.mount =  function () {
-        this.mounted = true;
-        this.update();
-    };
-
-    Component.prototype.update = function () {
-        var template = this.render();
-        if(this.template != template){
-            this.template = template;
-            this.el.innerHTML = this.tplEngine.render(this.template,this.state,this.node);
-        }
-        else{
-            this.el.innerHTML = this.tplEngine.render(this.node,this.state);
-        }
-    }
-
-
-    Component.prototype.index = function (now,old) {
-
-    };
-
-    return Component;
-    
-}());
-
-module.exports = Component;
-
-/***/ }),
-/* 5 */
+/* 3 */
 /***/ (function(module, exports) {
 
 var Context = (function () {
@@ -1087,7 +672,7 @@ var Context = (function () {
 module.exports = Context;
 
 /***/ }),
-/* 6 */
+/* 4 */
 /***/ (function(module, exports) {
 
 var Parser = (function () {
@@ -1298,7 +883,7 @@ var Parser = (function () {
 module.exports = Parser;
 
 /***/ }),
-/* 7 */
+/* 5 */
 /***/ (function(module, exports) {
 
 var Precompiler = (function () {
@@ -1345,7 +930,7 @@ var Precompiler = (function () {
 module.exports = Precompiler;
 
 /***/ }),
-/* 8 */
+/* 6 */
 /***/ (function(module, exports) {
 
 var Render = (function () {
@@ -1403,6 +988,325 @@ var Render = (function () {
 module.exports = Render;
 
 /***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var model = __webpack_require__(11);
+
+var Component = (function () {
+
+    function Component(templateEngine){
+        this.node = "app";
+        this.route = ["/"];
+        this.template = "";
+        this.flux = new model();
+        this.tplEngine = templateEngine;
+        this.state = {};
+        this.mounted = false;
+        this.hasProced = false;
+    }
+
+    Component.prototype.getInitialState = function () {
+        return {};
+    };
+
+    Component.prototype.componentWillMount = function () {
+
+    };
+
+    Component.prototype.componentDidMount = function () {
+
+    };
+
+    Component.prototype.componentShouldUpdate = function (lastState,nextState) {
+        return true;
+    };
+
+    Component.prototype.componentWillUpdate = function () {
+    };
+
+    Component.prototype.componentDidUpdate = function () {
+
+    };
+
+    Component.prototype.componentWillUnmount = function () {
+
+    };
+
+    Component.prototype.componentDidUnmount = function () {
+
+    };
+
+    Component.prototype.render = function () {
+        return "<h1>{{location}}</h1>";
+    };
+
+    Component.prototype.mountMiddleware = function () {
+        console.log('[Component::mountMiddleware] on ' + this.node);
+        //this.flux.setState({location:now.url});
+        if(this.mounted == true)
+            return;
+        this.componentWillMount();
+        this.mount();
+        this.componentDidMount();
+    };
+
+    Component.prototype.updateMiddleware = function (newState,shallowLevel) {
+        console.log('[Component::updateMiddleware] on ' + this.node);
+
+        if(this.flux.setState(newState,shallowLevel)){
+            var nextState = this.flux.getState();
+        }
+        else{
+            return;
+        }
+        if(this.componentShouldUpdate(this.state,nextState) === false) {
+            return;
+        }
+        this.state = nextState;
+        this.componentWillUpdate();
+        this.update();
+        this.componentDidUpdate();
+    };
+
+    Component.prototype.unmountMiddleware = function () {
+        console.log('[Component::unmountMiddleware] on ' + this.node);
+        //this.flux.setState({location:now.url});
+        if(this.mounted == false)
+            return;
+        this.componentWillUnmount();
+        this.unmount();
+        this.componentDidUnmount();
+    };
+
+    Component.prototype.setState = function(newState,shallowLevel){
+        if(shallowLevel === void 0)
+            shallowLevel = 1;
+        this.updateMiddleware(newState,shallowLevel);
+    };
+
+    Component.prototype.unmount =  function () {
+        this.el.innerHTML = "";
+        this.mounted = false;
+    };
+
+    Component.prototype.mount =  function () {
+        this.mounted = true;
+        this.update();
+    };
+
+    Component.prototype.update = function () {
+        var template = this.render();
+        if(this.template != template){
+            this.template = template;
+            this.el.innerHTML = this.tplEngine.render(this.template,this.state,this.node);
+        }
+        else{
+            this.el.innerHTML = this.tplEngine.render(this.node,this.state);
+        }
+    }
+
+
+    Component.prototype.index = function (now,old) {
+
+    };
+
+    return Component;
+
+}());
+
+module.exports = Component;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var Dictionnary = __webpack_require__(0);
+var History = __webpack_require__(9);
+
+var ComponentManager = (function () {
+
+    function ComponentManager(router) {
+        this.components = new Dictionnary();
+        this.history = new History();
+        this.routes = {
+            always:[],
+            stack: []
+        };
+        router.bind(this.render.bind(this));
+    }
+
+    ComponentManager.prototype.addComponentToRoute = function(component){
+
+        if(typeof component.route == "string")
+            component.route = [component.route];
+
+        for(var i = 0; i < component.route.length; i++){
+            this.registerToRoute(component.route[i],component);
+        }
+    };
+
+    ComponentManager.prototype.registerToRoute = function (route,component){
+        if(route == "*"){
+            this.routes.always.push(component);
+            return;
+        }
+
+        var alreadyRegistered = false;
+        for(var i = 0; i < this.routes.stack.length; i++){
+            if(this.routes.stack[i].name == route){
+                alreadyRegistered = true;
+                this.routes.stack[i].handlers.push(component);
+            }
+        }
+        if(!alreadyRegistered){
+            var _vars = [];
+            this.routes.stack.push({
+                name: route,
+                route: new RegExp('^' + (route.charAt(0) === '/' ? '' : '/') + route.replace(/:(\d+|\w+)/g, function (global, match) {
+                        _vars.push(match);
+                        return "(.[^\/]*)";
+                    }) + '$'),
+                vars: _vars,
+                handlers: [component]
+            });
+        }
+
+        this.routes.stack = this.routes.stack.sort(function (a,b) {
+            return b.name.length - a.name.length;
+        });
+
+    }
+
+    ComponentManager.prototype.add = function (component) {
+        this.components.add(component.node,component);
+        this.addComponentToRoute(component);
+    }
+
+
+    ComponentManager.prototype.applyRoute = function (path) {
+
+        var match,
+            keys = this.components.getKeys();
+
+        for(var i = 0; i < keys.length; i++){
+            this.components.get(keys[i]).hasProced = false;
+        }
+
+
+        for(var i = 0; i < this.routes.stack.length; i++) {
+            console.log('[ComponentManager::applyRoute] iterating on routes : actual = '+ this.routes.stack[i].route);
+            if (match = path.match(this.routes.stack[i].route)) {
+                console.log('[ComponentManager::applyRoute] route matched ('+ JSON.stringify(match) +' ) ');
+
+                match.shift();
+                var args = match.slice(),
+                    params = {};
+                for (var j = 0; j < args.length; j++)
+                    params[this.routes.stack[i].vars[j]] = args[j];
+
+                //add history entry
+                this.history.add({
+                    location:{
+                        route: this.routes.stack[i].name,
+                        url: {
+                            real: match.input,
+                            display: path
+                        },
+                        params: params
+                    }
+                });
+
+                //components who registered as * routes
+                for(var i = 0; i < this.routes.always.length; i++) {
+                    if(this.routes.always[i].hasProced === false){
+                        this.routes.always[i].hasProced = true;
+                        if(this.routes.always[i].mounted === false){
+                            this.routes.always[i].mountMiddleware();
+                            this.routes.always[i].index(this.history.now());
+                        }
+                        else{
+                            this.routes.always[i].index(this.history.now());
+                        }
+                    }
+                }
+
+                //components who subscribed for this route
+                for(var j = 0; j < this.routes.stack[i].handlers.length; j++) {
+                    if(this.routes.stack[i].handlers[j].hasProced === false){
+                        this.routes.stack[i].handlers[j].hasProced = true;
+                        if(this.routes.stack[i].handlers[j].mounted === false){
+                            this.routes.stack[i].handlers[j].mountMiddleware();
+                            this.routes.stack[i].handlers[j].index(this.history.now());
+                        }
+                        else{
+                            this.routes.stack[i].handlers[j].index(this.history.now());
+                        }
+                    }
+                }
+
+
+                //unmount others
+                var c;
+                for(var i = 0; i < keys.length; i++){
+                    c = this.components.get(keys[i]);
+                    if(c.hasProced === false){
+                        c.unmountMiddleware();
+                    }
+                }
+
+
+                return;
+            }
+        }
+
+
+        console.log('[ComponentManager::applyRoute] after applying routes',this.components);
+
+        this.history.add({
+            location:{
+                url: {
+                    display: path
+                }
+            }
+        });
+
+        for(var i = 0; i < this.routes.always.length; i++) {
+            if(this.routes.always[i].hasProced === false){
+                this.routes.always[i].hasProced = true;
+                if(this.routes.always[i].mounted === false){
+                    this.routes.always[i].mountMiddleware();
+                    this.routes.always[i].index(this.history.now());
+                }
+                else{
+                    this.routes.always[i].index(this.history.now());
+                }
+            }
+        }
+
+        //unmount others
+        var c;
+        for(var i = 0; i < keys.length; i++){
+            c = this.components.get(keys[i]);
+            if(c.hasProced === false){
+                c.unmountMiddleware();
+            }
+        }
+
+
+    };
+
+    ComponentManager.prototype.render = function (path) {
+        this.applyRoute(path);
+    }
+
+    return ComponentManager;
+
+}());
+
+module.exports = ComponentManager;
+
+/***/ }),
 /* 9 */
 /***/ (function(module, exports) {
 
@@ -1436,23 +1340,14 @@ module.exports = History;
 
 var Router = (function () {
 
-    function Router(history){
-        this.routes = {
-            always:[],
-            stack: []
-        };
-        this.root = window.location.origin;
-        this.middlewares = {
-            main: {},
-            stack: []
-        }
-        this.history = history;
+    function Router(){
         this.location = null;
+        this.root = window.location.origin;
     }
 
-    Router.prototype.bind = function (history) {
-        this.history = history;
-    };
+    Router.prototype.bind = function(fn){
+        this.handler = fn;
+    }
 
     Router.prototype.init = function () {
         this.parseTags();
@@ -1465,11 +1360,12 @@ var Router = (function () {
         console.log('[Router::parseTags]')
         Array.prototype.slice.call(document.getElementsByTagName('a')).forEach(function (link) {
             console.log('link finded ',link);
-            if(!(link.className.match(/handle/))){
+            if(link.className.indexOf('handle') === -1){
+                console.log('hook placed');
                 link.className = link.className.length ? link.className + ' handle' : 'handle'
                 link.addEventListener('click',function (e) {
                     e.preventDefault();
-                    var pathname = link.pathname.charAt(0) == '/' ? link.pathname : '/' + link.pathname;
+                    var pathname = link.pathname.charAt(0) === '/' ? link.pathname : '/' + link.pathname;
                     self.navigate(pathname);
                 });
             }
@@ -1483,198 +1379,21 @@ var Router = (function () {
         };
     };
 
-    Router.prototype.use = function (route,handler) {
-        if(arguments.length == 1 && typeof route == "function"){
-            this.middlewares.main = {
-                name: 'base',
-                route: '*',
-                vars: [],
-                handler: route
-            };
-            return this;
+    Router.prototype.navigate = function(path) {
+        console.log('[Router::navigate] called with path as '+path);
+        if(path === void 0){
+            path = this.getLocation();
         }
-
-        var _vars = [];
-        this.middlewares.stack.push({
-            name: route,
-            route: new RegExp('^/' + route.replace(/:(\d+|\w+)/g, function (global, match) {
-                    _vars.push(match);
-                    return "(.[^\/]*)";
-                }) + '$'),
-            vars: _vars,
-            handler: handler
-        });
-
-        this.middlewares.stack = this.middlewares.stack.sort(function (a,b) {
-            return b.route.toString().length - a.route.toString().length;
-        });
-
-        return this;
-    };
-
-    Router.prototype.on = function(route,handler){
-
-        if(typeof route == "function"){
-            var alreadyRegistered = false;
-            for(var i = 0; i < this.routes.stack.length; i++){
-                if(this.routes.stack[i].name == "/"){
-                    alreadyRegistered = true;
-                    this.routes.stack[i].handler.push(handler);
-                }
-            }
-            if(!alreadyRegistered){
-                this.routes.stack.push({
-                    name: 'base',
-                    route: /\//,
-                    vars: [],
-                    handler: [route]
-                })
-            }
-            return this;
-        }
-
-        if(typeof route != "string")
-            return this;
-
-        if(route == "*"){
-            this.routes.always.push(handler);
-            return this;
-        }
-
-        var alreadyRegistered = false;
-        for(var i = 0; i < this.routes.stack.length; i++){
-            if(this.routes.stack[i].name == route){
-                alreadyRegistered = true;
-                this.routes.stack[i].handler.push(handler);
-            }
-        }
-        if(!alreadyRegistered){
-            var _vars = [];
-            this.routes.stack.push({
-                name: route,
-                route: new RegExp('^' + route.replace(/:(\d+|\w+)/g, function (global, match) {
-                        _vars.push(match);
-                        return "(.[^\/]*)";
-                    }) + '$'),
-                vars: _vars,
-                handler: [handler]
-            });
-        }
-
-        this.routes.stack = this.routes.stack.sort(function (a,b) {
-            return b.length - a.length;
-        });
-
-        return this;
-    };
-
-    Router.prototype.navigate = function(route) {
-        console.log('[Router::navigate] ('+route+')');
-        this.applyMiddleware(route);
-    };
-
-    Router.prototype.applyMiddleware = function (route,index) {
-
-        var path = route || this.getLocation(),
-            match;
-
-        if(index == void 0){
-            this.middlewares.main.name !== undefined
-                ? this.middlewares.main.handler.call({},{url:path}, this.history.last(), function(){ this.applyMiddleware(path,0) }.bind(this))
-                : this.applyMiddleware(path,0);
-            return;
-        }
-
-
-        for(var i = index; i < this.middlewares.stack.length; i++){
-            if (match = path.match(this.middlewares.stack[i].route)) {
-                match.shift();
-                var args = match.slice(),
-                    params = {};
-                for (var j = 0; j < args.length; j++)
-                    params[this.middlewares.stack[i].vars[j]] = args[j];
-                this.middlewares.stack[i].handler.call({}, {route: this.middlewares.stack[i].name, url: match.input, params: params}, this.history.now(), function(){ this.applyMiddleware(path,++i) }.bind(this))
-                return;
-            }
-        }
-
-        this.applyRoute(path);
-    };
-
-    Router.prototype.applyRoute = function (route) {
-
-        console.log('[Router::applyRoute] (route/registered) ',route,this.routes);
-
-        var path = route || this.getLocation(),
-            match;
-
-
-
-
-        for(var i = 0; i < this.routes.stack.length; i++) {
-            if (match = path.match(this.routes.stack[i].route)) {
-                console.log('[Router::applyRoute] match found (match/route object) ',match,this.routes.stack[i]);
-                match.shift();
-                var args = match.slice(),
-                    params = {};
-                for (var j = 0; j < args.length; j++)
-                    params[this.routes.stack[i].vars[j]] = args[j];
-                if(this.location == path){
-                    window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
-                }
-                else{
-                    this.location = path;
-                    this.history.add({
-                        location:{
-                            route: this.routes.stack[i].name,
-                            url: {
-                                real: match.input,
-                                display: path
-                            },
-                            params: params
-                        }
-                    });
-                    window.history.pushState({location: path}, '', this.root + path + window.location.search + window.location.hash);
-                }
-                for(var i = 0; i < this.routes.always.length; i++) {
-                    this.routes.always[i].call(null, this.history.now() || {}, this.history.last() || {});
-                }
-                //this.emit(this.routes.stack[i].name);
-                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
-                    this.routes.stack[i].handler[j].call(null, this.history.now() || {}, this.history.last() || {});
-                this.parseTags();
-                return;
-            }
-        }
-
         if(this.location == path){
+            console.log('[Router::navigate] replace state');
             window.history.replaceState({location: path}, '', this.root + path + window.location.search + window.location.hash);
         }
         else{
+            console.log('[Router::navigate] push state');
             this.location = path;
-            this.history.add({
-                location:{
-                    url: {
-                        display: path
-                    }
-                }
-            });
             window.history.pushState({location: path}, '', this.root + path + window.location.search + window.location.hash);
+            this.handler.call(null,path);
         }
-
-        for(var i = 0; i < this.routes.always.length; i++) {
-            this.routes.always[i].call(null, this.history.now() || {}, this.history.last() || {});
-        }
-
-
-
-    };
-
-    Router.prototype.emit = function(route){
-        for(var i = 0; i < this.routes.stack.length; i++)
-            if(this.routes.stack[i].name == route)
-                for(var j = 0; j < this.routes.stack[i].handler.length; j++)
-                    this.routes.stack[i].handler[j].call(null, this.history.now(), this.history.last());
         this.parseTags();
     };
 
@@ -1689,35 +1408,237 @@ module.exports = Router;
 
 /***/ }),
 /* 11 */
+/***/ (function(module, exports) {
+
+var Flux = (function () {
+
+    function Flux(){
+        this.state = {};
+        this.store = [];
+        this.lastMaj = {};
+    }
+
+    Flux.prototype.init = function (initialState) {
+        if(typeof initialState != "object" && Object.keys(initialState).length == 0) return;
+        this.state = initialState;
+    };
+
+    Flux.prototype.getState = function () {
+        return Object.assign({},this.state);
+    };
+
+    Flux.prototype.stripSlashes = function(str){
+        return str.replace(/^\//,'').replace(/\/$/,'');
+    };
+
+    Flux.prototype.diff =  function (a,b,level) {
+
+        var nesting = 0;
+
+        console.log('\t'.repeat(nesting) + '[Flux::diff] invoked with',arguments);
+
+        if(level === void 0)
+            level = 1;
+
+        //compare a,b
+        if(typeof a != typeof b)
+            return true;
+
+        switch(typeof a){
+            case "object":
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in object');
+
+                //constructors
+                if(a.constructor != b.constructor)
+                    return true;
+
+                //prototypes
+                if(a.prototype != b.prototype)
+                    return true;
+
+                //proto
+                if(a.__proto__ != b.__proto__)
+                    return true;
+
+
+                if ((a instanceof Date && b instanceof Date) ||
+                    (a instanceof RegExp && b instanceof RegExp) ||
+                    (a instanceof String && b instanceof String) ||
+                    (a instanceof Number && b instanceof Number)) {
+                    console.log('\t'.repeat(nesting) + '[Flux::diff] is one of the bases instances');
+                    if(a.toString() != b.toString())
+                        return true;
+                }
+
+                //array
+
+                if(a instanceof Array && b instanceof Array){
+                    console.log('\t'.repeat(nesting) + '[Flux::diff] goes in array');
+
+                    if(a.length != b.length){
+                        console.log('\t'.repeat(nesting) + a.length+' != '+b.length);
+                        return true;
+                    }
+
+                    if(level == 0)
+                        return false;
+
+                    var ret = true, dif;
+                    for(var i = 0; i < a.length; i++){
+                        dif = !this.diff(a[i],b[i],level > 0 ? --level : level);
+                        ret = ret && dif;
+                        console.log('\t'.repeat(nesting) + 'diff called with '+a[i]+' && '+b[i]+' for array iteration (diff result/acutal ret)',!dif,ret);
+                    }
+                    return !ret;
+
+                }
+
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in plain object');
+
+                //same obj
+                if(Object.keys(a).length != Object.keys(b).length){
+                    console.log('\t'.repeat(nesting) + 'a && b keys length differents : '+Object.keys(a).length+ ' != '+ Object.keys(b).length);
+                    return true;
+                }
+
+                if(level == 0)
+                    return false;
+
+                var ret = true, dif;
+                for(var k in a){
+                    if(b.hasOwnProperty(k) === false){
+                        console.log('\t'.repeat(nesting) + 'b doesn\'t have '+k+' prop',b);
+                        return true;
+                    }
+                    dif = !this.diff(a[k],b[k],level > 0 ? --level : level);
+                    ret = ret && dif;
+                    console.log('\t'.repeat(nesting) + 'diff called with '+a[k]+' && '+b[k]+' for object iteration (diff result/acutal ret)',!dif,ret);
+                }
+                return !ret;
+
+                break;
+
+            case "function":
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in function');
+                if(a.toString() != b.toString()){
+                    console.log('\t'.repeat(nesting) + a.toString()+' != '+b.toString());
+                    return true;
+                }
+
+                break;
+
+            case "string":
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in string');
+                if(a != b){
+                    console.log('\t'.repeat(nesting) + a+' != '+b);
+                    return true;
+                }
+                break;
+
+            case "number":
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in number');
+                if(a != b){
+                    console.log('\t'.repeat(nesting) + a+' != '+b);
+                    return true;
+                }
+
+                break;
+
+            case "undefined":
+                console.log('\t'.repeat(nesting) + '[Flux::diff] goes in undefined');
+                break;
+        }
+        return false;
+    }
+
+    Flux.prototype.setState = function (state,shallow) {
+
+        if(shallow === void 0)
+            shallow = 1;
+
+        console.log('[Flux::setState] called',arguments);
+
+        if(typeof state != "object") return false;
+
+        if(Array.isArray(state)) return false;
+
+        if(Object.keys(state).length == 0) return false;
+
+        console.log('[Flux::setState] cmp last maj/new maj',this.lastMaj,state);
+
+        if(this.diff(this.lastMaj,state,shallow) === false) return false;
+
+        console.log('[Flux::setState] differences found');
+
+        this.store.push(Object.assign({},this.state));
+
+        this.lastMaj = state;
+
+        this.state = Object.assign({},this.state,state);
+
+        console.log('[Flux::setState] merged states',this.state);
+
+        return true;
+
+    };
+
+    return Flux;
+
+}());
+
+module.exports = Flux;
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var framework = __webpack_require__(2);
+var framework = __webpack_require__(1);
 
 var react = new framework();
 
 react.createComponent({
     node:"app",
-    route: "*",
+    route: ["/","app"],
     getInitialState: function(){
         return {
             message: "greeting",
-            url:'void',
-            template: '<h1>{{message}} to {{url}}</h1>'
+            url: ''
         };
     },
-    index: function (now,old) {
-        console.log(now,old);
+    index: function (now) {
         this.setState({url:now.location.url.display});
     },
     render: function () {
-        console.log('[App Component::render]',arguments);
-        return '<h1>{{message}} to {{url}}</h1>';
+        return '<h1>{{message}} from {{url}}</h1>';
     }
 });
 
-react.launch();
+react.createComponent({
+    node:"navigate",
+    route:"*",
+    getInitialState: function(){
+        return {
+            routes:[
+                '/app',
+                '/node',
+                '/bin/bash'
+            ],
+            actual:0
+        };
+    },
+    index: function (now) {
+        this.setState({actual:now.location.url.display});
+    },
+    render: function () {
+        return '<span>You are at {{actual}}</span><ul><%for {{routes}} as {{route}}%><li><a href="{{route}}">{{route}}</a></li><%endfor%></ul>';
+    }
+})
 
 react.routerEngine.navigate("/");
+
+react.launch();
+
+
 
 /***/ })
 /******/ ]);

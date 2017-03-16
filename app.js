@@ -1,27 +1,46 @@
-var framework = require('./vendor/node_router/AbsctractFramework');
+var framework = require('./vendor/v2/fm/Framework');
 
 var react = new framework();
 
 react.createComponent({
     node:"app",
-    route: "*",
+    route: ["/","app"],
     getInitialState: function(){
         return {
             message: "greeting",
-            url:'void',
-            template: '<h1>{{message}} to {{url}}</h1>'
+            url: ''
         };
     },
-    index: function (now,old) {
-        console.log(now,old);
+    index: function (now) {
         this.setState({url:now.location.url.display});
     },
     render: function () {
-        console.log('[App Component::render]',arguments);
-        return '<h1>{{message}} to {{url}}</h1>';
+        return '<h1>{{message}} from {{url}}</h1>';
     }
 });
 
-react.launch();
+react.createComponent({
+    node:"navigate",
+    route:"*",
+    getInitialState: function(){
+        return {
+            routes:[
+                '/app',
+                '/node',
+                '/bin/bash'
+            ],
+            actual:0
+        };
+    },
+    index: function (now) {
+        this.setState({actual:now.location.url.display});
+    },
+    render: function () {
+        return '<span>You are at {{actual}}</span><ul><%for {{routes}} as {{route}}%><li><a href="{{route}}">{{route}}</a></li><%endfor%></ul>';
+    }
+})
 
 react.routerEngine.navigate("/");
+
+react.launch();
+

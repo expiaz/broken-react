@@ -230,6 +230,7 @@ var Router = (function () {
             this.routes.always[i].call(null, this.history.now() || {}, this.history.last() || {});
         }
 
+        this.parseTags();
 
 
     };
