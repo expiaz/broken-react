@@ -113,7 +113,6 @@ var Component = (function () {
         }
     }
 
-
     Component.prototype.index = function (now,old) {
 
     };

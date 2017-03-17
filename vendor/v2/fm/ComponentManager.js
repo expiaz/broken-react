@@ -14,7 +14,6 @@ var ComponentManager = (function () {
     }
 
     ComponentManager.prototype.addComponentToRoute = function(component){
-
         if(typeof component.route == "string")
             component.route = [component.route];
 
@@ -59,7 +58,6 @@ var ComponentManager = (function () {
         this.components.add(component.node,component);
         this.addComponentToRoute(component);
     }
-
 
     ComponentManager.prototype.applyRoute = function (path) {
 

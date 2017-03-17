@@ -1,4 +1,4 @@
-var framework = require('./vendor/v2/fm/Framework');
+var framework = require('./../vendor/v2/fm/Framework');
 
 var react = new framework();
 
@@ -38,7 +38,7 @@ react.createComponent({
     render: function () {
         return '<span>You are at {{actual}}</span><ul><%for {{routes}} as {{route}}%><li><a href="{{route}}">{{route}}</a></li><%endfor%></ul>';
     }
-})
+});
 
 react.routerEngine.navigate("/");
 

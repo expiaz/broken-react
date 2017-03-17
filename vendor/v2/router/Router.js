@@ -13,7 +13,7 @@ var Router = (function () {
         this.parseTags();
         this.listen();
         this.navigate(decodeURI(window.location.pathname));
-    };
+    }
 
     Router.prototype.parseTags = function () {
         var self = this;
@@ -23,21 +23,21 @@ var Router = (function () {
             if(link.className.indexOf('handle') === -1){
                 console.log('hook placed');
                 link.className = link.className.length ? link.className + ' handle' : 'handle'
-                link.addEventListener('click',function (e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     var pathname = link.pathname.charAt(0) === '/' ? link.pathname : '/' + link.pathname;
                     self.navigate(pathname);
                 });
             }
         });
-    };
+    }
 
     Router.prototype.listen = function(){
         var self = this;
         window.onpopstate = function (e) {
             self.navigate(e.state.location);
-        };
-    };
+        }
+    }
 
     Router.prototype.navigate = function(path) {
         console.log('[Router::navigate] called with path as '+path);
@@ -55,13 +55,14 @@ var Router = (function () {
             this.handler.call(null,path);
         }
         this.parseTags();
-    };
+    }
 
     Router.prototype.getLocation = function(){
         return decodeURI(window.location.pathname);
-    };
+    }
 
     return Router;
+
 }());
 
 module.exports = Router;

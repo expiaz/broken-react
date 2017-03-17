@@ -61,8 +61,7 @@ var Dictionnary = (function () {
 
     Dictionnary.prototype.duplicate = function (key) {
         var ret = this._values.slice(this._keys.indexOf(key), this._keys.indexOf(key) + 1)[0];
-        console.log('[Dico::duplicate] return = ');
-        console.log(ret);
+        console.log('[Dico::duplicate] return = ',ret);
         if(typeof ret == "object"){
             if(Array.isArray(ret)){
                 return this.utils.map_(ret);

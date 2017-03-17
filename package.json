@@ -10,7 +10,12 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack"
+    "build": "webpack && sass assets/sass/style.scss public/style.css",
+    "buildjs": "webpack",
+    "buildsass": "sass assets/sass/style.scss public/style.css",
+    "run": "webpack-dev-server --hot --inline && sass --watch assets/sass/style.scss:public/style.css",
+    "runjs": "webpack-dev-server --hot --inline",
+    "runsass": "sass --watch assets/sass/style.scss:public/style.css"
   },
   "repository": {
     "type": "git",
